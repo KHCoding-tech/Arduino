@@ -13,70 +13,28 @@
   https://docs.arduino.cc/built-in-examples/basics/Fade/
 */
 
-int clearLED = 11;         // the PWM pin the LED is attached to
-int blueLED = 10;         // the PWM pin the LED is attached to
-int redLED = 9;         // the PWM pin the LED is attached to
-int greenLED = 6;         // the PWM pin the LED is attached to
-int brightness = 0;  // how bright the LED is
-int fadeAmount = 5;  // how many points to fade the LED by
+const int leds[] = {11, 10, 9, 6}; // LED pins
+const int numLeds = 4;
+const int fadeDelay = 10; // ms between brightness changes
 
-// the setup routine runs once when you press reset:
 void setup() {
-  // declare pin 9 to be an output:
-  pinMode(clearLED, OUTPUT);
-  pinMode(blueLED, OUTPUT);
-  pinMode(redLED, OUTPUT);
-  pinMode(greenLED, OUTPUT);
+  for (int i = 0; i < numLeds; i++) {
+    pinMode(leds[i], OUTPUT);
+  }
 }
 
-// the loop routine runs over and over again forever:
 void loop() {
-  // set the brightness of pin 9:
-  analogWrite(clearLED, brightness);
-
-  // change the brightness for next time through the loop:
-  brightness = brightness + fadeAmount;
-
-  // reverse the direction of the fading at the ends of the fade:
-  if (brightness <= 0 || brightness >= 255) {
-    fadeAmount = -fadeAmount;
+  for (int i = 0; i < numLeds; i++) {
+    // Fade current LED in
+    for (int brightness = 0; brightness <= 255; brightness++) {
+      analogWrite(leds[i], brightness);
+      delay(fadeDelay);
+    }
+    // Fade current LED out
+    for (int brightness = 255; brightness >= 0; brightness--) {
+      analogWrite(leds[i], brightness);
+      delay(fadeDelay);
+    }
   }
-  // wait for 30 milliseconds to see the dimming effect
-  delay(30);
-    // set the brightness of pin 9:
-  analogWrite(blueLED, brightness);
-
-  // change the brightness for next time through the loop:
-  brightness = brightness + fadeAmount;
-
-  // reverse the direction of the fading at the ends of the fade:
-  if (brightness <= 0 || brightness >= 255) {
-    fadeAmount = -fadeAmount;
-  }
-  // wait for 30 milliseconds to see the dimming effect
-  delay(30);
-      // set the brightness of pin 9:
-  analogWrite(redLED, brightness);
-
-  // change the brightness for next time through the loop:
-  brightness = brightness + fadeAmount;
-
-  // reverse the direction of the fading at the ends of the fade:
-  if (brightness <= 0 || brightness >= 255) {
-    fadeAmount = -fadeAmount;
-  }
-  // wait for 30 milliseconds to see the dimming effect
-  delay(30);
-        // set the brightness of pin 9:
-  analogWrite(greenLED, brightness);
-
-  // change the brightness for next time through the loop:
-  brightness = brightness + fadeAmount;
-
-  // reverse the direction of the fading at the ends of the fade:
-  if (brightness <= 0 || brightness >= 255) {
-    fadeAmount = -fadeAmount;
-  }
-  // wait for 30 milliseconds to see the dimming effect
-  delay(30);
 }
+
