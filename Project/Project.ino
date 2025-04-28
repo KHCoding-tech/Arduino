@@ -12,6 +12,8 @@ bool gameOver = false;
 
 int speed = 3;              // Initial speed
 unsigned long lastSpeedUp = 0;  // Timer to track speed increase
+unsigned long lastScoreUpdate = 0; // Timer to update score
+int score = 0;              // Player's score
 
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
 
@@ -60,9 +62,15 @@ void loop() {
         if (cactusX < -10) cactusX = 128;
 
         // Speed up every 5 seconds
-        if (millis() - lastSpeedUp > 5000) { // 5000 milliseconds = 5 seconds
+        if (millis() - lastSpeedUp > 5000) {
             speed++;
             lastSpeedUp = millis();
+        }
+
+        // Increase score every 200ms
+        if (millis() - lastScoreUpdate > 200) {
+            score++;
+            lastScoreUpdate = millis();
         }
 
         // Draw scene
@@ -70,6 +78,14 @@ void loop() {
         display.fillRect(10, dinoY, 10, 10, SSD1306_WHITE); // Dino
         display.fillRect(cactusX, groundY, 10, 15, SSD1306_WHITE); // Cactus
         display.drawLine(0, 58, 128, 58, SSD1306_WHITE); // Ground
+        
+        // Draw score
+        display.setTextSize(1);
+        display.setTextColor(SSD1306_WHITE);
+        display.setCursor(90, 0);
+        display.print("Score:");
+        display.print(score);
+        
         display.display();
 
         // Collision detection
@@ -77,11 +93,17 @@ void loop() {
             display.clearDisplay();
             display.setTextSize(2);
             display.setTextColor(SSD1306_WHITE);
-            display.setCursor(10, 20);
+            display.setCursor(10, 10);
             display.print("Game Over");
+
             display.setTextSize(1);
-            display.setCursor(15, 50);
+            display.setCursor(20, 40);
+            display.print("Score: ");
+            display.print(score);
+
+            display.setCursor(5, 55);
             display.print("Press Btn to Restart");
+            
             display.display();
             gameOver = true;
         }
@@ -96,8 +118,10 @@ void restartGame() {
     velocity = 0;
     cactusX = 128;
     gameOver = false;
-    speed = 3;              // Reset speed
-    lastSpeedUp = millis(); // Reset timer
+    speed = 3;
+    lastSpeedUp = millis();
+    lastScoreUpdate = millis();
+    score = 0;
 
     display.clearDisplay();
     display.display();
