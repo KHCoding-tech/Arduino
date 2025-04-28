@@ -11,6 +11,8 @@ const int groundY = 40;
 int cactusX = 128;
 bool gameOver = false;
 
+bool isBird = false;   // NEW: Is current obstacle a bird?
+
 int speed = 3;
 unsigned long lastSpeedUp = 0;
 unsigned long lastScoreUpdate = 0;
@@ -21,12 +23,13 @@ Adafruit_SSD1306 display(128, 64, &Wire, -1);
 
 void setup() {
     pinMode(BUTTON_PIN, INPUT);
-    pinMode(BUZZER_PIN, OUTPUT);  // Setup buzzer
+    pinMode(BUZZER_PIN, OUTPUT);
     
     if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
         while (1);
     }
     
+    randomSeed(analogRead(0));  // Initialize randomness
     display.clearDisplay();
 }
 
@@ -41,7 +44,7 @@ void loop() {
         } else {
             isJumping = true;
             velocity = -10;  // Jump power
-            playJumpSound(); // 🦖 Play jump sound
+            playJumpSound();
         }
         delay(50); // Debounce
     } 
@@ -61,9 +64,17 @@ void loop() {
             }
         }
 
-        // Move cactus
+        // Move obstacle
         cactusX -= speed;
-        if (cactusX < -10) cactusX = 128;
+        if (cactusX < -10) {
+            cactusX = 128;
+            // Randomly decide new obstacle: cactus or bird
+            if (random(0, 2) == 0) {
+                isBird = false; // Cactus
+            } else {
+                isBird = true;  // Bird
+            }
+        }
 
         // Speed up every 5 seconds
         if (millis() - lastSpeedUp > 5000) {
@@ -80,7 +91,15 @@ void loop() {
         // Draw scene
         display.clearDisplay();
         display.fillRect(10, dinoY, 10, 10, SSD1306_WHITE); // Dino
-        display.fillRect(cactusX, groundY, 10, 15, SSD1306_WHITE); // Cactus
+
+        if (isBird) {
+            // Bird obstacle
+            display.fillRect(cactusX, groundY - 20, 15, 10, SSD1306_WHITE); // Bird flying
+        } else {
+            // Cactus obstacle
+            display.fillRect(cactusX, groundY, 10, 15, SSD1306_WHITE); // Cactus on ground
+        }
+        
         display.drawLine(0, 58, 128, 58, SSD1306_WHITE); // Ground
         
         // Draw score
@@ -98,32 +117,15 @@ void loop() {
         display.display();
 
         // Collision detection
-        if (cactusX < 20 && cactusX > 5 && dinoY == groundY) {
-            if (score > highScore) {
-                highScore = score;  // Update high score
+        if (cactusX < 20 && cactusX > 5) { 
+            if (!isBird && dinoY == groundY) {
+                // Hit cactus on ground while on ground -> crash
+                endGame();
             }
-            playGameOverSound(); // 🌵 Play crash sound
-
-            display.clearDisplay();
-            display.setTextSize(2);
-            display.setTextColor(SSD1306_WHITE);
-            display.setCursor(10, 5);
-            display.print("Game Over");
-
-            display.setTextSize(1);
-            display.setCursor(20, 35);
-            display.print("Score: ");
-            display.print(score);
-
-            display.setCursor(20, 45);
-            display.print("High: ");
-            display.print(highScore);
-
-            display.setCursor(5, 57);
-            display.print("Press Btn to Restart");
-            
-            display.display();
-            gameOver = true;
+            if (isBird && dinoY < groundY - 5) {
+                // Jumped into bird -> crash
+                endGame();
+            }
         }
     }
 
@@ -140,13 +142,40 @@ void restartGame() {
     lastSpeedUp = millis();
     lastScoreUpdate = millis();
     score = 0;
+    isBird = false;
 
     display.clearDisplay();
     display.display();
 }
 
-// --- Sound Functions ---
+void endGame() {
+    playGameOverSound();
+    if (score > highScore) {
+        highScore = score;
+    }
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(10, 5);
+    display.print("Game Over");
 
+    display.setTextSize(1);
+    display.setCursor(20, 35);
+    display.print("Score: ");
+    display.print(score);
+
+    display.setCursor(20, 45);
+    display.print("High: ");
+    display.print(highScore);
+
+    display.setCursor(5, 57);
+    display.print("Press Btn to Restart");
+    
+    display.display();
+    gameOver = true;
+}
+
+// --- Sound Functions ---
 void playJumpSound() {
     tone(BUZZER_PIN, 1000, 100);  // 1000Hz beep for 100ms
 }
