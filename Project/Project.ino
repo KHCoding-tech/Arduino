@@ -8,7 +8,10 @@ int velocity = 0;
 const int gravity = 2;
 const int groundY = 40;
 int cactusX = 128;
-bool gameOver = false;  // New variable to track game state
+bool gameOver = false;
+
+int speed = 3;              // Initial speed
+unsigned long lastSpeedUp = 0;  // Timer to track speed increase
 
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
 
@@ -25,12 +28,11 @@ void setup() {
 void loop() {
     static bool buttonPressed = false;
     
-    // Read button input
     if (digitalRead(BUTTON_PIN) == HIGH && !buttonPressed) {
         buttonPressed = true;
 
         if (gameOver) {
-            restartGame();  // Restart if game over
+            restartGame();
         } else {
             isJumping = true;
             velocity = -10;  // Jump power
@@ -54,8 +56,14 @@ void loop() {
         }
 
         // Move cactus
-        cactusX -= 3;
+        cactusX -= speed;
         if (cactusX < -10) cactusX = 128;
+
+        // Speed up every 5 seconds
+        if (millis() - lastSpeedUp > 5000) { // 5000 milliseconds = 5 seconds
+            speed++;
+            lastSpeedUp = millis();
+        }
 
         // Draw scene
         display.clearDisplay();
@@ -69,10 +77,13 @@ void loop() {
             display.clearDisplay();
             display.setTextSize(2);
             display.setTextColor(SSD1306_WHITE);
-            display.setCursor(20, 20);
+            display.setCursor(10, 20);
             display.print("Game Over");
+            display.setTextSize(1);
+            display.setCursor(15, 50);
+            display.print("Press Btn to Restart");
             display.display();
-            gameOver = true; // Set game over flag
+            gameOver = true;
         }
     }
 
@@ -80,12 +91,13 @@ void loop() {
 }
 
 void restartGame() {
-    // Reset all necessary variables
     isJumping = false;
     dinoY = groundY;
     velocity = 0;
     cactusX = 128;
     gameOver = false;
+    speed = 3;              // Reset speed
+    lastSpeedUp = millis(); // Reset timer
 
     display.clearDisplay();
     display.display();
