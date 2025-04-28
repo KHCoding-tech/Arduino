@@ -10,10 +10,11 @@ const int groundY = 40;
 int cactusX = 128;
 bool gameOver = false;
 
-int speed = 3;              // Initial speed
-unsigned long lastSpeedUp = 0;  // Timer to track speed increase
-unsigned long lastScoreUpdate = 0; // Timer to update score
-int score = 0;              // Player's score
+int speed = 3;
+unsigned long lastSpeedUp = 0;
+unsigned long lastScoreUpdate = 0;
+int score = 0;
+int highScore = 0;   // NEW: track high score
 
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
 
@@ -82,26 +83,38 @@ void loop() {
         // Draw score
         display.setTextSize(1);
         display.setTextColor(SSD1306_WHITE);
-        display.setCursor(90, 0);
+        display.setCursor(0, 0);
         display.print("Score:");
         display.print(score);
+
+        // Draw high score
+        display.setCursor(80, 0);
+        display.print("High:");
+        display.print(highScore);
         
         display.display();
 
         // Collision detection
         if (cactusX < 20 && cactusX > 5 && dinoY == groundY) {
+            if (score > highScore) {
+                highScore = score;  // Update high score
+            }
             display.clearDisplay();
             display.setTextSize(2);
             display.setTextColor(SSD1306_WHITE);
-            display.setCursor(10, 10);
+            display.setCursor(10, 5);
             display.print("Game Over");
 
             display.setTextSize(1);
-            display.setCursor(20, 40);
+            display.setCursor(20, 35);
             display.print("Score: ");
             display.print(score);
 
-            display.setCursor(5, 55);
+            display.setCursor(20, 45);
+            display.print("High: ");
+            display.print(highScore);
+
+            display.setCursor(5, 57);
             display.print("Press Btn to Restart");
             
             display.display();
