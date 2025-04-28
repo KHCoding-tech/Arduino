@@ -82,8 +82,8 @@ void loop() {
             lastSpeedUp = millis();
         }
 
-        // Increase score every 200ms
-        if (millis() - lastScoreUpdate > 200) {
+        // Increase score based on speed
+        if (millis() - lastScoreUpdate > (200 - speed * 10)) {  // Faster score increment with speed
             score++;
             lastScoreUpdate = millis();
         }
