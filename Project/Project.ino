@@ -1,6 +1,7 @@
 #include <Adafruit_SSD1306.h>
 
-#define BUTTON_PIN 7  // Pin connected to the button
+#define BUTTON_PIN 7   // Button input
+#define BUZZER_PIN 8   // Speaker/Buzzer output
 
 bool isJumping = false;
 int dinoY = 40;
@@ -14,15 +15,16 @@ int speed = 3;
 unsigned long lastSpeedUp = 0;
 unsigned long lastScoreUpdate = 0;
 int score = 0;
-int highScore = 0;   // NEW: track high score
+int highScore = 0;
 
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
 
 void setup() {
     pinMode(BUTTON_PIN, INPUT);
+    pinMode(BUZZER_PIN, OUTPUT);  // Setup buzzer
     
     if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-        while (1);  // If display fails
+        while (1);
     }
     
     display.clearDisplay();
@@ -39,6 +41,7 @@ void loop() {
         } else {
             isJumping = true;
             velocity = -10;  // Jump power
+            playJumpSound(); // 🦖 Play jump sound
         }
         delay(50); // Debounce
     } 
@@ -99,6 +102,8 @@ void loop() {
             if (score > highScore) {
                 highScore = score;  // Update high score
             }
+            playGameOverSound(); // 🌵 Play crash sound
+
             display.clearDisplay();
             display.setTextSize(2);
             display.setTextColor(SSD1306_WHITE);
@@ -138,4 +143,14 @@ void restartGame() {
 
     display.clearDisplay();
     display.display();
+}
+
+// --- Sound Functions ---
+
+void playJumpSound() {
+    tone(BUZZER_PIN, 1000, 100);  // 1000Hz beep for 100ms
+}
+
+void playGameOverSound() {
+    tone(BUZZER_PIN, 200, 500);   // 200Hz deep sound for 500ms
 }
