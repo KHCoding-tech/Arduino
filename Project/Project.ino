@@ -1,4 +1,6 @@
 #include <Adafruit_SSD1306.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
 #define BUTTON_PIN 7   // Button input
 #define BUZZER_PIN 8   // Speaker/Buzzer output
@@ -18,24 +20,30 @@ unsigned long lastSpeedUp = 0;
 unsigned long lastScoreUpdate = 0;
 int score = 0;
 int highScore = 0;
+int lastDisplayedScore = -1;
 
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
+LiquidCrystal_I2C lcd(0x27, 16, 2); // Adjust address if needed
 
 void setup() {
     pinMode(BUTTON_PIN, INPUT);
     pinMode(BUZZER_PIN, OUTPUT);
-    
+
     if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
         while (1);
     }
-    
+
+    lcd.init();
+    lcd.backlight();
+    lcd.clear();
+
     randomSeed(analogRead(0));  // Initialize randomness
     display.clearDisplay();
 }
 
 void loop() {
     static bool buttonPressed = false;
-    
+
     if (digitalRead(BUTTON_PIN) == HIGH && !buttonPressed) {
         buttonPressed = true;
 
@@ -48,7 +56,7 @@ void loop() {
         }
         delay(50); // Debounce
     } 
-    
+
     if (digitalRead(BUTTON_PIN) == LOW) {
         buttonPressed = false;
     }
@@ -68,11 +76,10 @@ void loop() {
         cactusX -= speed;
         if (cactusX < -10) {
             cactusX = 128;
-            // Randomly decide new obstacle: cactus or bird
             if (random(0, 2) == 0) {
-                isBird = false; // Cactus
+                isBird = false;
             } else {
-                isBird = true;  // Bird
+                isBird = true;
             }
         }
 
@@ -82,10 +89,24 @@ void loop() {
             lastSpeedUp = millis();
         }
 
-        // Increase score based on speed
-        if (millis() - lastScoreUpdate > (200 - speed * 10)) {  // Faster score increment with speed
+        // Increase score and update LCD
+        if (millis() - lastScoreUpdate > (200 - speed * 10)) {
             score++;
             lastScoreUpdate = millis();
+
+            if (score != lastDisplayedScore) {
+                lcd.setCursor(0, 0);
+                lcd.print("Score:");
+                lcd.print(score);
+                lcd.print("    ");
+
+                lcd.setCursor(0, 1);
+                lcd.print("High:");
+                lcd.print(highScore);
+                lcd.print("    ");
+
+                lastDisplayedScore = score;
+            }
         }
 
         // Draw scene
@@ -93,43 +114,37 @@ void loop() {
         display.fillRect(10, dinoY, 10, 10, SSD1306_WHITE); // Dino
 
         if (isBird) {
-            // Bird obstacle
-            display.fillRect(cactusX, groundY - 20, 15, 10, SSD1306_WHITE); // Bird flying
+            display.fillRect(cactusX, groundY - 20, 15, 10, SSD1306_WHITE); // Bird
         } else {
-            // Cactus obstacle
-            display.fillRect(cactusX, groundY, 10, 15, SSD1306_WHITE); // Cactus on ground
+            display.fillRect(cactusX, groundY, 10, 15, SSD1306_WHITE); // Cactus
         }
-        
-        display.drawLine(0, 58, 128, 58, SSD1306_WHITE); // Ground
-        
-        // Draw score
+
+        display.drawLine(0, 58, 128, 58, SSD1306_WHITE);
+
+        // Draw score and high score on OLED too (optional)
         display.setTextSize(1);
         display.setTextColor(SSD1306_WHITE);
         display.setCursor(0, 0);
         display.print("Score:");
         display.print(score);
-
-        // Draw high score
         display.setCursor(80, 0);
         display.print("High:");
         display.print(highScore);
-        
+
         display.display();
 
         // Collision detection
-        if (cactusX < 20 && cactusX > 5) { 
+        if (cactusX < 20 && cactusX > 5) {
             if (!isBird && dinoY == groundY) {
-                // Hit cactus on ground while on ground -> crash
                 endGame();
             }
             if (isBird && dinoY < groundY - 5) {
-                // Jumped into bird -> crash
                 endGame();
             }
         }
     }
 
-    delay(50);  // Smooth gameplay
+    delay(50);
 }
 
 void restartGame() {
@@ -143,7 +158,9 @@ void restartGame() {
     lastScoreUpdate = millis();
     score = 0;
     isBird = false;
+    lastDisplayedScore = -1;
 
+    lcd.clear();
     display.clearDisplay();
     display.display();
 }
@@ -170,16 +187,16 @@ void endGame() {
 
     display.setCursor(5, 57);
     display.print("Press Btn to Restart");
-    
+
     display.display();
     gameOver = true;
 }
 
 // --- Sound Functions ---
 void playJumpSound() {
-    tone(BUZZER_PIN, 1000, 100);  // 1000Hz beep for 100ms
+    tone(BUZZER_PIN, 1000, 100);
 }
 
 void playGameOverSound() {
-    tone(BUZZER_PIN, 200, 500);   // 200Hz deep sound for 500ms
+    tone(BUZZER_PIN, 200, 500); // Shorter tone (500ms)
 }
