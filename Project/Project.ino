@@ -19,7 +19,11 @@ int speed = 3;
 unsigned long lastSpeedUp = 0;
 unsigned long lastScoreUpdate = 0;
 int score = 0;
+unsigned long startTime = 0;
+unsigned long timeSurvived = 0;
+unsigned long highTime = 0;
 int highScore = 0;
+
 int lastDisplayedScore = -1;
 
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
@@ -39,6 +43,7 @@ void setup() {
 
     randomSeed(analogRead(0));  // Initialize randomness
     display.clearDisplay();
+    startTime = millis();
 }
 
 void loop() {
@@ -62,7 +67,6 @@ void loop() {
     }
 
     if (!gameOver) {
-        // Handle jumping physics
         if (isJumping) {
             dinoY += velocity;
             velocity += gravity;
@@ -72,68 +76,57 @@ void loop() {
             }
         }
 
-        // Move obstacle
         cactusX -= speed;
         if (cactusX < -10) {
             cactusX = 128;
-            if (random(0, 2) == 0) {
-                isBird = false;
-            } else {
-                isBird = true;
-            }
+            isBird = (random(0, 2) == 1);
         }
 
-        // Speed up every 5 seconds
         if (millis() - lastSpeedUp > 5000) {
             speed++;
             lastSpeedUp = millis();
         }
 
-        // Increase score and update LCD
         if (millis() - lastScoreUpdate > (200 - speed * 10)) {
             score++;
+            timeSurvived = (millis() - startTime) / 1000;
             lastScoreUpdate = millis();
 
-            if (score != lastDisplayedScore) {
-                lcd.setCursor(0, 0);
-                lcd.print("Score:");
-                lcd.print(score);
-                lcd.print("    ");
+            lcd.setCursor(0, 0);
+            lcd.print("High Score:");
+            lcd.print(highScore);
+            lcd.print("   ");
 
-                lcd.setCursor(0, 1);
-                lcd.print("High:");
-                lcd.print(highScore);
-                lcd.print("    ");
-
-                lastDisplayedScore = score;
-            }
+            lcd.setCursor(0, 1);
+            lcd.print("High Time:");
+            lcd.print(highTime);
+            lcd.print("s   ");
         }
 
-        // Draw scene
         display.clearDisplay();
-        display.fillRect(10, dinoY, 10, 10, SSD1306_WHITE); // Dino
+        display.fillRect(10, dinoY, 10, 10, SSD1306_WHITE);
 
         if (isBird) {
-            display.fillRect(cactusX, groundY - 20, 15, 10, SSD1306_WHITE); // Bird
+            display.fillRect(cactusX, groundY - 20, 15, 10, SSD1306_WHITE);
         } else {
-            display.fillRect(cactusX, groundY, 10, 15, SSD1306_WHITE); // Cactus
+            display.fillRect(cactusX, groundY, 10, 15, SSD1306_WHITE);
         }
 
         display.drawLine(0, 58, 128, 58, SSD1306_WHITE);
 
-        // Draw score and high score on OLED too (optional)
         display.setTextSize(1);
         display.setTextColor(SSD1306_WHITE);
         display.setCursor(0, 0);
         display.print("Score:");
         display.print(score);
-        display.setCursor(80, 0);
-        display.print("High:");
-        display.print(highScore);
+
+        display.setCursor(0, 10);
+        display.print("Time:");
+        display.print(timeSurvived);
+        display.print("s");
 
         display.display();
 
-        // Collision detection
         if (cactusX < 20 && cactusX > 5) {
             if (!isBird && dinoY == groundY) {
                 endGame();
@@ -158,7 +151,9 @@ void restartGame() {
     lastScoreUpdate = millis();
     score = 0;
     isBird = false;
+    timeSurvived = 0;
     lastDisplayedScore = -1;
+    startTime = millis();
 
     lcd.clear();
     display.clearDisplay();
@@ -167,9 +162,13 @@ void restartGame() {
 
 void endGame() {
     playGameOverSound();
+    if (timeSurvived > highTime) {
+        highTime = timeSurvived;
+    }
     if (score > highScore) {
         highScore = score;
     }
+
     display.clearDisplay();
     display.setTextSize(2);
     display.setTextColor(SSD1306_WHITE);
@@ -177,13 +176,14 @@ void endGame() {
     display.print("Game Over");
 
     display.setTextSize(1);
-    display.setCursor(20, 35);
+    display.setCursor(20, 30);
     display.print("Score: ");
     display.print(score);
 
     display.setCursor(20, 45);
-    display.print("High: ");
-    display.print(highScore);
+    display.print("Time: ");
+    display.print(timeSurvived);
+    display.print("s");
 
     display.setCursor(5, 57);
     display.print("Press Btn to Restart");
@@ -192,11 +192,10 @@ void endGame() {
     gameOver = true;
 }
 
-// --- Sound Functions ---
 void playJumpSound() {
     tone(BUZZER_PIN, 1000, 100);
 }
 
 void playGameOverSound() {
-    tone(BUZZER_PIN, 200, 500); // Shorter tone (500ms)
+    tone(BUZZER_PIN, 200, 500);
 }
