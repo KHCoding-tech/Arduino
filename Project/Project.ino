@@ -199,3 +199,4 @@ void playJumpSound() {
 void playGameOverSound() {
     tone(BUZZER_PIN, 200, 500);
 }
+
